@@ -10,8 +10,15 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export type UserRole = { 'admin' : null } |
+  { 'user' : null } |
+  { 'guest' : null };
 export interface _SERVICE {
+  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getEmails' : ActorMethod<[], Array<string>>,
+  'isCallerAdmin' : ActorMethod<[], boolean>,
   'submitEmail' : ActorMethod<[string], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

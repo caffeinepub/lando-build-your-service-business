@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import Layout from "./components/Layout";
 import About from "./pages/About";
+import Admin from "./pages/Admin";
 import Home from "./pages/Home";
 import LeadMagnet from "./pages/LeadMagnet";
 
@@ -43,7 +44,18 @@ const aboutRoute = createRoute({
   component: About,
 });
 
-const routeTree = rootRoute.addChildren([homeRoute, guideRoute, aboutRoute]);
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: Admin,
+});
+
+const routeTree = rootRoute.addChildren([
+  homeRoute,
+  guideRoute,
+  aboutRoute,
+  adminRoute,
+]);
 
 const router = createRouter({ routeTree });
 
