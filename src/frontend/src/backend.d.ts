@@ -14,8 +14,10 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    claimFirstAdmin(): Promise<boolean>;
     getCallerUserRole(): Promise<UserRole>;
     getEmails(): Promise<Array<string>>;
+    hasAdmin(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     submitEmail(email: string): Promise<void>;
 }

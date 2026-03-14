@@ -97,8 +97,10 @@ export enum UserRole {
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    claimFirstAdmin(): Promise<boolean>;
     getCallerUserRole(): Promise<UserRole>;
     getEmails(): Promise<Array<string>>;
+    hasAdmin(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     submitEmail(email: string): Promise<void>;
 }
@@ -133,6 +135,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async claimFirstAdmin(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await (this.actor as any).claimFirstAdmin();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await (this.actor as any).claimFirstAdmin();
+            return result;
+        }
+    }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
@@ -158,6 +174,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getEmails();
+            return result;
+        }
+    }
+    async hasAdmin(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await (this.actor as any).hasAdmin();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await (this.actor as any).hasAdmin();
             return result;
         }
     }

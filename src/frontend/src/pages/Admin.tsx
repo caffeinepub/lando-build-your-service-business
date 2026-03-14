@@ -9,20 +9,21 @@ import {
 } from "@/components/ui/table";
 import { useActor } from "@/hooks/useActor";
 import { useInternetIdentity } from "@/hooks/useInternetIdentity";
-import { useQuery } from "@tanstack/react-query";
-import { Download, LogOut, Mail, Users } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download, LogOut, Mail, ShieldCheck, Users } from "lucide-react";
 
 function useAdminData() {
   const { actor, isFetching } = useActor();
   return useQuery({
     queryKey: ["admin", "emails"],
     queryFn: async () => {
-      if (!actor) return { isAdmin: false, emails: [] };
-      const [isAdmin, emails] = await Promise.all([
+      if (!actor) return { isAdmin: false, emails: [], hasAdmin: false };
+      const [isAdmin, emails, hasAdmin] = await Promise.all([
         actor.isCallerAdmin(),
-        actor.getEmails(),
+        actor.isCallerAdmin().then((a) => (a ? actor.getEmails() : [])),
+        actor.hasAdmin(),
       ]);
-      return { isAdmin, emails };
+      return { isAdmin, emails: isAdmin ? emails : [], hasAdmin };
     },
     enabled: !!actor && !isFetching,
   });
@@ -43,8 +44,22 @@ function exportCSV(emails: string[]) {
 
 export default function Admin() {
   const { identity, login, clear, isLoggingIn } = useInternetIdentity();
-  const { isFetching: actorFetching } = useActor();
+  const { isFetching: actorFetching, actor } = useActor();
   const { data, isLoading } = useAdminData();
+  const queryClient = useQueryClient();
+
+  const claimAdmin = useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Not connected");
+      const success = await actor.claimFirstAdmin();
+      if (!success)
+        throw new Error("Could not claim admin — an admin already exists.");
+      return success;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "emails"] });
+    },
+  });
 
   const isAuthenticated = !!identity;
   const loading = isLoading || actorFetching;
@@ -86,6 +101,61 @@ export default function Admin() {
         <div className="text-center">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground text-sm">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // First-run: no admin assigned yet
+  if (!data?.hasAdmin) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
+        <div className="max-w-sm w-full text-center" data-ocid="admin.panel">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-accent mb-6">
+            <ShieldCheck className="w-6 h-6 text-primary" />
+          </div>
+          <h1 className="font-display font-bold text-3xl text-foreground mb-3">
+            First-Time Setup
+          </h1>
+          <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
+            No admin has been assigned yet. Click below to make your current
+            account the admin. This button disappears once an admin is set.
+          </p>
+          {claimAdmin.isError && (
+            <p
+              className="text-destructive text-sm mb-4"
+              data-ocid="admin.error_state"
+            >
+              {(claimAdmin.error as Error).message}
+            </p>
+          )}
+          {claimAdmin.isSuccess ? (
+            <p
+              className="text-sm text-green-600 font-medium mb-4"
+              data-ocid="admin.success_state"
+            >
+              You are now the admin. Reloading…
+            </p>
+          ) : (
+            <Button
+              onClick={() => claimAdmin.mutate()}
+              disabled={claimAdmin.isPending}
+              data-ocid="admin.primary_button"
+              className="w-full font-semibold"
+            >
+              {claimAdmin.isPending ? "Setting up…" : "Make me the admin"}
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clear}
+            data-ocid="admin.secondary_button"
+            className="mt-4 text-muted-foreground"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign out
+          </Button>
         </div>
       </div>
     );
