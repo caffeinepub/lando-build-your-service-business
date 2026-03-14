@@ -10,7 +10,14 @@ import {
 import { useActor } from "@/hooks/useActor";
 import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, LogOut, Mail, ShieldCheck, Users } from "lucide-react";
+import {
+  Download,
+  LogOut,
+  Mail,
+  RefreshCw,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 
 function useAdminData() {
   const { actor, isFetching } = useActor();
@@ -44,13 +51,21 @@ function exportCSV(emails: string[]) {
 
 export default function Admin() {
   const { identity, login, clear, isLoggingIn } = useInternetIdentity();
-  const { isFetching: actorFetching, actor } = useActor();
+  const {
+    isFetching: actorFetching,
+    actor,
+    isError: actorError,
+    refetch: retryActor,
+  } = useActor();
   const { data, isLoading } = useAdminData();
   const queryClient = useQueryClient();
 
   const claimAdmin = useMutation({
     mutationFn: async () => {
-      if (!actor) throw new Error("Not connected");
+      if (!actor)
+        throw new Error(
+          "Not connected to backend. Please use the Retry button.",
+        );
       const success = await actor.claimFirstAdmin();
       if (!success)
         throw new Error("Could not claim admin — an admin already exists.");
@@ -64,7 +79,6 @@ export default function Admin() {
   const isAuthenticated = !!identity;
   const loading = isLoading || actorFetching;
 
-  // Not logged in
   if (!isAuthenticated) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
@@ -84,14 +98,13 @@ export default function Admin() {
             data-ocid="admin.primary_button"
             className="w-full font-semibold"
           >
-            {isLoggingIn ? "Signing in…" : "Sign in"}
+            {isLoggingIn ? "Signing in\u2026" : "Sign in"}
           </Button>
         </div>
       </div>
     );
   }
 
-  // Loading
   if (loading) {
     return (
       <div
@@ -100,13 +113,49 @@ export default function Admin() {
       >
         <div className="text-center">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm">Loading…</p>
+          <p className="text-muted-foreground text-sm">Connecting\u2026</p>
         </div>
       </div>
     );
   }
 
-  // First-run: no admin assigned yet
+  if (actorError || (!actor && !actorFetching)) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
+        <div
+          className="max-w-sm w-full text-center"
+          data-ocid="admin.error_state"
+        >
+          <h1 className="font-display font-bold text-2xl text-foreground mb-3">
+            Connection failed
+          </h1>
+          <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
+            Could not connect to the backend. Check your connection and try
+            again.
+          </p>
+          <Button
+            onClick={() => retryActor()}
+            data-ocid="admin.primary_button"
+            className="w-full font-semibold mb-3"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retry connection
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clear}
+            data-ocid="admin.secondary_button"
+            className="text-muted-foreground"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign out
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (!data?.hasAdmin) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
@@ -134,16 +183,16 @@ export default function Admin() {
               className="text-sm text-green-600 font-medium mb-4"
               data-ocid="admin.success_state"
             >
-              You are now the admin. Reloading…
+              You are now the admin. Reloading\u2026
             </p>
           ) : (
             <Button
               onClick={() => claimAdmin.mutate()}
-              disabled={claimAdmin.isPending}
+              disabled={claimAdmin.isPending || !actor}
               data-ocid="admin.primary_button"
               className="w-full font-semibold"
             >
-              {claimAdmin.isPending ? "Setting up…" : "Make me the admin"}
+              {claimAdmin.isPending ? "Setting up\u2026" : "Make me the admin"}
             </Button>
           )}
           <Button
@@ -161,7 +210,6 @@ export default function Admin() {
     );
   }
 
-  // Not admin
   if (!data?.isAdmin) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
@@ -193,7 +241,6 @@ export default function Admin() {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-16">
-      {/* Header */}
       <div className="flex items-start justify-between mb-12">
         <div>
           <p className="font-body text-xs font-semibold text-primary uppercase tracking-widest mb-2">
@@ -215,7 +262,6 @@ export default function Admin() {
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-10">
         <div className="border border-border rounded-lg p-6">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
@@ -237,7 +283,6 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-muted-foreground">
           {emails.length} {emails.length === 1 ? "subscriber" : "subscribers"}
@@ -255,7 +300,6 @@ export default function Admin() {
         </Button>
       </div>
 
-      {/* Table */}
       {emails.length === 0 ? (
         <div
           className="border border-border rounded-lg py-20 text-center"
