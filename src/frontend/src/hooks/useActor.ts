@@ -31,7 +31,6 @@ export function useActor() {
     },
     staleTime: Number.POSITIVE_INFINITY,
     enabled: true,
-    retry: 3,
   });
 
   useEffect(() => {

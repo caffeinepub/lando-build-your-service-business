@@ -17,8 +17,10 @@ export const UserRole = IDL.Variant({
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'claimFirstAdmin' : IDL.Func([], [IDL.Bool], []),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getEmails' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+  'hasAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'submitEmail' : IDL.Func([IDL.Text], [], []),
 });
@@ -35,8 +37,10 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'claimFirstAdmin' : IDL.Func([], [IDL.Bool], []),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getEmails' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    'hasAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'submitEmail' : IDL.Func([IDL.Text], [], []),
   });
